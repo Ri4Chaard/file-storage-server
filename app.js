@@ -1,11 +1,22 @@
 const express = require("express");
+const authRoutes = require("./routes/authRoutes");
+const fileRoutes = require("./routes/fileRoutes");
+const cors = require("cors");
+
 const app = express();
-const port = 3000;
+const router = express.Router();
 
-app.get("/", (req, res) => {
-    return res.json({ message: "Hello world!" });
-});
+app.use(cors());
+app.use(express.json());
+app.use("/api/auth", authRoutes);
+app.use("/api/files", fileRoutes);
 
-app.listen(port || 3000, () => {
-    console.log(`Server running on port ${port}`);
-});
+//test
+app.use(
+    "/",
+    router.get("/", async (req, res) => {
+        return res.json({ message: "it's working!" });
+    })
+);
+
+module.exports = app;
