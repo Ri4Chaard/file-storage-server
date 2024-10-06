@@ -1,6 +1,10 @@
 const express = require("express");
+
 const authRoutes = require("./routes/authRoutes");
 const fileRoutes = require("./routes/fileRoutes");
+const userRoutes = require("./routes/userRoutes");
+const folderRoutes = require("./routes/folderRoutes");
+
 const cors = require("cors");
 const path = require("path");
 
@@ -11,6 +15,8 @@ app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/folder", folderRoutes);
 app.use("/api/files", fileRoutes);
 
 //test
