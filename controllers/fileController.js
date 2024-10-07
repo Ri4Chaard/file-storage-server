@@ -17,12 +17,15 @@ const upload = multer({ storage });
 exports.uploadFile = [
     upload.single("file"),
     async (req, res) => {
+        const { folderId } = req.body;
+
         try {
             const file = await prisma.file.create({
                 data: {
                     name: req.file.filename,
                     path: req.file.path,
                     userId: req.userId,
+                    folderId: folderId || null,
                 },
             });
             res.status(201).json(file);
@@ -33,11 +36,17 @@ exports.uploadFile = [
 ];
 
 exports.getFiles = async (req, res) => {
+    const { userId, folderId } = req.query;
+
     try {
         const files = await prisma.file.findMany({
-            where: { userId: req.userId },
+            where: {
+                userId: parseInt(userId),
+                ...(folderId && { folderId: parseInt(folderId) }),
+            },
         });
-        res.json(files);
+
+        res.status(200).json(files);
     } catch (error) {
         res.status(500).json({ error: "Failed to retrieve files" });
     }

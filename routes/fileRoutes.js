@@ -5,6 +5,6 @@ const { isAdmin } = require("../middleware/roleMiddleware");
 const router = express.Router();
 
 router.post("/upload", auth, isAdmin, uploadFile);
-router.post("/show", auth, getFiles);
+router.get("/show", auth, getFiles);
 
 module.exports = router;

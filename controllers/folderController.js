@@ -3,30 +3,33 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 exports.createFolder = async (req, res) => {
-    const { name, userId } = req.body;
+    const { name, userId, parentId } = req.body;
 
     try {
         const folder = await prisma.folder.create({
             data: {
                 name,
                 userId,
+                parentId: parentId || null,
             },
         });
 
         res.status(201).json(folder);
-    } catch (e) {
+    } catch (error) {
         res.status(400).json({ error: "Unable to create folder" });
     }
 };
 
-exports.getAllFolders = async (req, res) => {
-    const userId = parseInt(req.query.userId);
+exports.getUserFolders = async (req, res) => {
+    const { userId, parentId } = req.query;
 
     try {
         const folders = await prisma.folder.findMany({
             where: {
-                userId: userId,
+                userId: parseInt(userId),
+                parentId: parseInt(parentId),
             },
+            include: { children: true, files: true },
         });
 
         res.status(200).json(folders);
