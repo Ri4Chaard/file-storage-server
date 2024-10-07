@@ -18,16 +18,18 @@ exports.uploadFile = [
     upload.single("file"),
     async (req, res) => {
         const { folderId } = req.body;
+        const { userId } = req.body;
 
         try {
             const file = await prisma.file.create({
                 data: {
                     name: req.file.filename,
                     path: req.file.path,
-                    userId: req.userId,
-                    folderId: folderId || null,
+                    userId: parseInt(userId),
+                    folderId: parseInt(folderId) || null,
                 },
             });
+
             res.status(201).json(file);
         } catch (error) {
             res.status(500).json({ error: "File upload failed" });
@@ -42,7 +44,7 @@ exports.getFiles = async (req, res) => {
         const files = await prisma.file.findMany({
             where: {
                 userId: parseInt(userId),
-                ...(folderId && { folderId: parseInt(folderId) }),
+                folderId: folderId ? parseInt(folderId) : null,
             },
         });
 

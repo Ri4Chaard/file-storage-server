@@ -29,7 +29,7 @@ exports.getUserFolders = async (req, res) => {
                 userId: parseInt(userId),
                 parentId: parseInt(parentId),
             },
-            include: { children: true, files: true },
+            include: { children: true },
         });
 
         res.status(200).json(folders);
