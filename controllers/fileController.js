@@ -36,20 +36,3 @@ exports.uploadFile = [
         }
     },
 ];
-
-exports.getFiles = async (req, res) => {
-    const { userId, folderId } = req.query;
-
-    try {
-        const files = await prisma.file.findMany({
-            where: {
-                userId: parseInt(userId),
-                folderId: folderId ? parseInt(folderId) : null,
-            },
-        });
-
-        res.status(200).json(files);
-    } catch (error) {
-        res.status(500).json({ error: "Failed to retrieve files" });
-    }
-};

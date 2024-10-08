@@ -19,21 +19,3 @@ exports.createFolder = async (req, res) => {
         res.status(400).json({ error: "Unable to create folder" });
     }
 };
-
-exports.getUserFolders = async (req, res) => {
-    const { userId, parentId } = req.query;
-
-    try {
-        const folders = await prisma.folder.findMany({
-            where: {
-                userId: parseInt(userId),
-                parentId: parseInt(parentId),
-            },
-            include: { children: true },
-        });
-
-        res.status(200).json(folders);
-    } catch (e) {
-        res.status(400).json({ error: "Unable to found folders" });
-    }
-};
