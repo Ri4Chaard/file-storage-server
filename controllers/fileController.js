@@ -8,29 +8,32 @@ const storage = multer.diskStorage({
         cb(null, "uploads/");
     },
     filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
+        cb(null, file.originalname);
     },
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage }).array("files");
 
-exports.uploadFile = [
-    upload.single("file"),
+exports.uploadFiles = [
+    upload,
     async (req, res) => {
-        const { folderId } = req.body;
-        const { userId } = req.body;
+        const { folderId, userId } = req.body;
 
         try {
-            const file = await prisma.file.create({
-                data: {
-                    name: req.file.filename,
-                    path: req.file.path,
-                    userId: parseInt(userId),
-                    folderId: parseInt(folderId) || null,
-                },
-            });
+            const files = await Promise.all(
+                req.files.map((file) =>
+                    prisma.file.create({
+                        data: {
+                            name: file.filename,
+                            path: file.path,
+                            userId: parseInt(userId),
+                            folderId: parseInt(folderId) || null,
+                        },
+                    })
+                )
+            );
 
-            res.status(201).json(file);
+            res.status(201).json(files);
         } catch (error) {
             res.status(500).json({ error: "File upload failed" });
         }
