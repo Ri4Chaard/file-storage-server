@@ -2,6 +2,7 @@ const multer = require("multer");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const path = require("path");
+const fs = require("fs");
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -50,4 +51,15 @@ exports.getFile = (req, res) => {
             return res.status(404).json({ message: "Файл не найден" });
         }
     });
+};
+
+exports.viewFile = (req, res) => {
+    const { filename } = req.params;
+    const filePath = path.join(__dirname, "../uploads", filename);
+
+    if (fs.existsSync(filePath)) {
+        res.sendFile(filePath);
+    } else {
+        res.status(404).json({ error: "File not found" });
+    }
 };

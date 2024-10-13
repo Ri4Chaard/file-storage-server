@@ -13,8 +13,8 @@ const app = express();
 const router = express.Router();
 
 const corsOptions = {
-    origin: "http://localhost:3000", // Замени на URL клиента, если он отличается
-    credentials: true, // Разрешаем передачу cookies для авторизованных запросов
+    origin: "http://localhost:3000",
+    credentials: true,
 };
 
 app.use(cors(corsOptions));
