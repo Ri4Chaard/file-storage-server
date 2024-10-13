@@ -12,9 +12,16 @@ const path = require("path");
 const app = express();
 const router = express.Router();
 
-app.use(cors());
+const corsOptions = {
+    origin: "http://localhost:3000", // Замени на URL клиента, если он отличается
+    credentials: true, // Разрешаем передачу cookies для авторизованных запросов
+};
+
+app.use(cors(corsOptions));
+
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/folder", folderRoutes);

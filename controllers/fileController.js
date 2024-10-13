@@ -39,3 +39,15 @@ exports.uploadFiles = [
         }
     },
 ];
+
+exports.getFile = (req, res) => {
+    const fileName = req.params.filename;
+    const filePath = path.join(__dirname, "../uploads", fileName);
+
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            console.error("Ошибка при отправке файла:", err);
+            return res.status(404).json({ message: "Файл не найден" });
+        }
+    });
+};
