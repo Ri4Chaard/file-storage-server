@@ -63,3 +63,33 @@ exports.viewFile = (req, res) => {
         res.status(404).json({ error: "File not found" });
     }
 };
+
+exports.deleteFile = async (req, res) => {
+    const { fileId } = req.params;
+
+    try {
+        const deletedFile = await prisma.file.delete({
+            where: { id: parseInt(fileId) },
+        });
+
+        const duplicateFiles = await prisma.file.findMany({
+            where: { name: deletedFile.name },
+        });
+
+        if (duplicateFiles.length === 0) {
+            const filePath = path.join(
+                __dirname,
+                "../uploads",
+                deletedFile.name
+            );
+            if (fs.existsSync(filePath)) {
+                fs.rmSync(filePath);
+            }
+        }
+
+        res.status(200).json({ message: "File deleted" });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: "File delete failed" });
+    }
+};
