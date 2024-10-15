@@ -22,37 +22,48 @@ exports.createFolder = async (req, res) => {
     }
 };
 
+const deleteFolderRecursive = async (folderId) => {
+    const files = await prisma.file.findMany({
+        where: { folderId },
+    });
+
+    await prisma.file.deleteMany({
+        where: { folderId },
+    });
+
+    for (const file of files) {
+        const duplicateFiles = await prisma.file.findMany({
+            where: { name: file.name },
+        });
+
+        if (duplicateFiles.length === 0) {
+            const filePath = path.join(__dirname, "../uploads", file.name);
+            if (fs.existsSync(filePath)) {
+                fs.rmSync(filePath);
+            }
+        }
+    }
+
+    const subfolders = await prisma.folder.findMany({
+        where: { parentId: folderId },
+    });
+
+    for (const subfolder of subfolders) {
+        await deleteFolderRecursive(subfolder.id);
+    }
+
+    await prisma.folder.delete({
+        where: { id: folderId },
+    });
+};
+
 exports.deleteFolder = async (req, res) => {
     const { folderId } = req.params;
 
     try {
-        const files = await prisma.file.findMany({
-            where: { folderId: parseInt(folderId) },
-        });
-
-        await prisma.file.deleteMany({
-            where: { folderId: parseInt(folderId) },
-        });
-
-        await prisma.folder.delete({
-            where: { id: parseInt(folderId) },
-        });
-
-        for (const file of files) {
-            const duplicateFiles = await prisma.file.findMany({
-                where: { name: file.name },
-            });
-
-            if (duplicateFiles.length === 0) {
-                const filePath = path.join(__dirname, "../uploads", file.name);
-                if (fs.existsSync(filePath)) {
-                    fs.rmSync(filePath);
-                }
-            }
-        }
-
+        await deleteFolderRecursive(parseInt(folderId));
         res.status(200).json({
-            message: "Folder and files deleted successfully",
+            message: "Folder and all contents deleted successfully",
         });
     } catch (e) {
         console.error(e);
