@@ -27,6 +27,7 @@ exports.uploadFiles = [
                         data: {
                             name: file.filename,
                             path: file.path,
+                            size: file.size,
                             userId: parseInt(userId),
                             folderId: parseInt(folderId) || null,
                         },

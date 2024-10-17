@@ -10,7 +10,9 @@ datasource db {
 model User {
     id          Int         @id @default(autoincrement())
 
-    email       String      @unique
+    login       String      @unique
+    email       String?     @unique
+    phone       String?     @unique
     password    String
     folders     Folder[]
     files       File[]
@@ -44,6 +46,7 @@ model File {
 
     name        String
     path        String
+    size        Int
 
     owner       User      @relation(fields: [userId], references: [id])
     userId      Int

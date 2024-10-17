@@ -5,25 +5,27 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 exports.register = async (req, res) => {
-    const { email, password, role } = req.body;
+    const { login, phone, email, password, role } = req.body;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     try {
-        const candidate = await prisma.user.findUnique({
+        const candidate = await prisma.user.findFirst({
             where: {
-                email: email,
+                OR: [{ login }, { phone }, { email }],
             },
         });
 
         if (candidate) {
             return res
                 .status(400)
-                .json({ error: "User with such email already exist" });
+                .json({ error: "User with such data already exist" });
         }
 
         const newUser = await prisma.user.create({
             data: {
+                login,
+                phone,
                 email,
                 password: hashedPassword,
                 role: role || "USER",
@@ -37,10 +39,10 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
+    const { login, password } = req.body;
 
     try {
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({ where: { login } });
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ error: "Invalid credentials" });
