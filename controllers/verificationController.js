@@ -31,6 +31,20 @@ exports.sendCode = async (req, res) => {
             });
         }
 
+        if (user.password) {
+            return res.status(200).json({
+                registered: true,
+                message: "User already verified",
+            });
+        }
+
+        if (user.verified) {
+            return res.status(200).json({
+                verified: true,
+                message: "User already verified",
+            });
+        }
+
         const verificationCode = generateVerificationCode();
         await sendVerificationCode(phone, verificationCode);
 

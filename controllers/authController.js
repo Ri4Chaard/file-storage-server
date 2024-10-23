@@ -14,8 +14,6 @@ exports.addUser = async (req, res) => {
             },
         });
 
-        console.log(candidate);
-
         if (candidate) {
             return res
                 .status(400)
