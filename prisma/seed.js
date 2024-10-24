@@ -8,14 +8,12 @@ async function up() {
     await prisma.user.createMany({
         data: [
             {
-                phone: "1111111",
-                login: "admin",
+                phone: "8888888888",
                 password: hashedPassword,
                 role: "ADMIN",
             },
             {
-                phone: "2222222",
-                login: "user",
+                phone: "2222222222",
                 password: hashedPassword,
                 role: "USER",
             },

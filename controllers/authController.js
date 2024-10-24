@@ -35,7 +35,7 @@ exports.addUser = async (req, res) => {
 };
 
 exports.register = async (req, res) => {
-    const { phone, login, password } = req.body;
+    const { phone, password } = req.body;
 
     try {
         const candidate = await prisma.user.findFirst({
@@ -56,7 +56,6 @@ exports.register = async (req, res) => {
         const newUser = await prisma.user.update({
             where: { phone },
             data: {
-                login,
                 password: hashedPassword,
             },
         });
@@ -71,10 +70,10 @@ exports.register = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-    const { login, password } = req.body;
+    const { phone, password } = req.body;
 
     try {
-        const user = await prisma.user.findUnique({ where: { login } });
+        const user = await prisma.user.findUnique({ where: { phone } });
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ error: "Invalid credentials" });
