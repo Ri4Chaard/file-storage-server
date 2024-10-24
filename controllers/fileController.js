@@ -6,10 +6,34 @@ const fs = require("fs");
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "uploads/");
+        const { userId } = req.body;
+
+        // Prisma поиск по userId
+        prisma.user
+            .findUnique({ where: { id: parseInt(userId) } })
+            .then((user) => {
+                if (user) {
+                    const userFolderPath = path.join(
+                        __dirname,
+                        "../uploads",
+                        user.phone
+                    );
+                    if (!fs.existsSync(userFolderPath)) {
+                        fs.mkdirSync(userFolderPath, { recursive: true });
+                    }
+                    cb(null, userFolderPath); // Сохранить файл в папке пользователя
+                } else {
+                    cb(new Error("User not found"), null);
+                }
+            })
+            .catch((error) => {
+                cb(error, null);
+            });
     },
     filename: (req, file, cb) => {
-        cb(null, file.originalname);
+        const timestamp = Date.now();
+        const uniqueFilename = `${timestamp}-${file.originalname}`;
+        cb(null, uniqueFilename);
     },
 });
 
@@ -42,26 +66,78 @@ exports.uploadFiles = [
     },
 ];
 
-exports.getFile = (req, res) => {
-    const fileName = req.params.filename;
-    const filePath = path.join(__dirname, "../uploads", fileName);
+exports.getFile = async (req, res) => {
+    const userId = req.userId;
 
-    res.sendFile(filePath, (err) => {
-        if (err) {
-            console.error("Ошибка при отправке файла:", err);
-            return res.status(404).json({ message: "Файл не найден" });
+    try {
+        const { filename } = req.params;
+        const file = await prisma.file.findFirst({
+            where: { name: filename },
+            include: { owner: true },
+        });
+
+        if (!file) {
+            return res.status(404).json({ message: "File not found" });
         }
-    });
+
+        if (userId !== file.owner.id && userId !== 1) {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
+        const filePath = path.join(
+            __dirname,
+            "../uploads/" + file.owner.phone,
+            filename
+        );
+        if (fs.existsSync(filePath)) {
+            res.sendFile(filePath, (err) => {
+                if (err) {
+                    console.error("Ошибка при отправке файла:", err);
+                    return res
+                        .status(500)
+                        .json({ message: "Error sending file" });
+                }
+            });
+        } else {
+            return res.status(404).json({ message: "File not found" });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: "Internal server error" });
+    }
 };
 
-exports.viewFile = (req, res) => {
-    const { filename } = req.params;
-    const filePath = path.join(__dirname, "../uploads", filename);
+exports.viewFile = async (req, res) => {
+    const userId = req.userId;
 
-    if (fs.existsSync(filePath)) {
-        res.sendFile(filePath);
-    } else {
-        res.status(404).json({ error: "File not found" });
+    try {
+        const { filename } = req.params;
+        const file = await prisma.file.findFirst({
+            where: { name: filename },
+            include: { owner: true },
+        });
+
+        if (!file) {
+            return res.status(404).json({ message: "File not found" });
+        }
+
+        if (userId !== file.owner.id && userId !== 1) {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
+        const filePath = path.join(
+            __dirname,
+            "../uploads/" + file.owner.phone,
+            filename
+        );
+        if (fs.existsSync(filePath)) {
+            return res.sendFile(filePath);
+        } else {
+            return res.status(404).json({ message: "File not found" });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: "Internal server error" });
     }
 };
 

@@ -1,5 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const path = require("path");
+const fs = require("fs");
 const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
@@ -25,6 +27,12 @@ exports.addUser = async (req, res) => {
                 phone,
             },
         });
+
+        const userFolderPath = path.join(__dirname, "../uploads", phone);
+        if (!fs.existsSync(userFolderPath)) {
+            fs.mkdirSync(userFolderPath, { recursive: true });
+        }
+
         res.status(201).json({
             message: "Phone successfully registered.",
             user: newUser,

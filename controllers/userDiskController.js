@@ -19,6 +19,11 @@ async function getFolderWithChildren(folderId) {
 
 exports.getUserDisk = async (req, res) => {
     const { userId, parentId } = req.query;
+    const reqUserId = req.userId;
+
+    if (reqUserId !== parseInt(userId) && reqUserId !== 1) {
+        return res.status(403).json({ error: "Access denied" });
+    }
 
     try {
         const files = await prisma.file.findMany({
@@ -28,9 +33,7 @@ exports.getUserDisk = async (req, res) => {
             },
         });
 
-        let folders = [];
-
-        folders = await prisma.folder.findMany({
+        let folders = await prisma.folder.findMany({
             where: {
                 userId: parseInt(userId),
                 parentId: null,
@@ -40,11 +43,11 @@ exports.getUserDisk = async (req, res) => {
 
         folders = await Promise.all(
             folders.map((folder) => getFolderWithChildren(folder.id))
-        ).then((results) => results.flat());
+        );
 
-        res.status(200).json({ files, folders });
+        return res.status(200).json({ files, folders });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Failed to retrieve disk" });
+        return res.status(500).json({ error: "Failed to retrieve disk" });
     }
 };
