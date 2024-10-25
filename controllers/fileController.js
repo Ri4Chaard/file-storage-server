@@ -3,6 +3,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const path = require("path");
 const fs = require("fs");
+const archiver = require("archiver");
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -142,31 +143,77 @@ exports.viewFile = async (req, res) => {
 };
 
 exports.deleteFile = async (req, res) => {
-    const { fileId } = req.params;
-
     try {
+        const { fileId } = req.params;
+        const file = await prisma.file.findFirst({
+            where: { id: parseInt(fileId) },
+            include: { owner: true },
+        });
+
         const deletedFile = await prisma.file.delete({
             where: { id: parseInt(fileId) },
         });
 
-        const duplicateFiles = await prisma.file.findMany({
-            where: { name: deletedFile.name },
-        });
-
-        if (duplicateFiles.length === 0) {
-            const filePath = path.join(
-                __dirname,
-                "../uploads",
-                deletedFile.name
-            );
-            if (fs.existsSync(filePath)) {
-                fs.rmSync(filePath);
-            }
+        const filePath = path.join(
+            __dirname,
+            "../uploads/" + file.owner.phone,
+            deletedFile.name
+        );
+        if (fs.existsSync(filePath)) {
+            fs.rmSync(filePath);
         }
 
         res.status(200).json({ message: "File deleted" });
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: "File delete failed" });
+    }
+};
+
+exports.downloadSelected = async (req, res) => {
+    try {
+        const { selectedFiles } = req.body;
+
+        const archive = archiver("zip", {
+            zlib: { level: 9 },
+        });
+
+        archive.on("error", (err) => {
+            res.status(500).send({ error: err.message });
+        });
+
+        const file = await prisma.file.findFirst({
+            where: {
+                id: selectedFiles[0],
+            },
+            include: {
+                folder: true,
+            },
+        });
+        const archiveName = file.folder ? file.folder.name : "main-page";
+
+        res.attachment(`${archiveName}-${selectedFiles.length}.zip`);
+
+        archive.pipe(res);
+
+        for (const id of selectedFiles) {
+            const file = await prisma.file.findFirst({
+                where: { id },
+                include: { owner: true },
+            });
+            const filePath = path.join(
+                __dirname,
+                "../uploads/" + file.owner.phone,
+                file.name
+            );
+            if (fs.existsSync(filePath)) {
+                archive.file(filePath, { name: file.name.substring(14) });
+            }
+        }
+
+        await archive.finalize();
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: "Files download failed" });
     }
 };

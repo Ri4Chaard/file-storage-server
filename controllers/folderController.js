@@ -22,7 +22,7 @@ exports.createFolder = async (req, res) => {
     }
 };
 
-const deleteFolderRecursive = async (folderId) => {
+const deleteFolderRecursive = async (folderId, phone) => {
     const files = await prisma.file.findMany({
         where: { folderId },
     });
@@ -32,15 +32,9 @@ const deleteFolderRecursive = async (folderId) => {
     });
 
     for (const file of files) {
-        const duplicateFiles = await prisma.file.findMany({
-            where: { name: file.name },
-        });
-
-        if (duplicateFiles.length === 0) {
-            const filePath = path.join(__dirname, "../uploads", file.name);
-            if (fs.existsSync(filePath)) {
-                fs.rmSync(filePath);
-            }
+        const filePath = path.join(__dirname, "../uploads/" + phone, file.name);
+        if (fs.existsSync(filePath)) {
+            fs.rmSync(filePath);
         }
     }
 
@@ -49,7 +43,7 @@ const deleteFolderRecursive = async (folderId) => {
     });
 
     for (const subfolder of subfolders) {
-        await deleteFolderRecursive(subfolder.id);
+        await deleteFolderRecursive(subfolder.id, phone);
     }
 
     await prisma.folder.delete({
@@ -61,7 +55,16 @@ exports.deleteFolder = async (req, res) => {
     const { folderId } = req.params;
 
     try {
-        await deleteFolderRecursive(parseInt(folderId));
+        const folder = await prisma.folder.findFirst({
+            where: {
+                id: parseInt(folderId),
+            },
+            include: {
+                user: true,
+            },
+        });
+
+        await deleteFolderRecursive(parseInt(folderId), folder.user.phone);
         res.status(200).json({
             message: "Folder and all contents deleted successfully",
         });
