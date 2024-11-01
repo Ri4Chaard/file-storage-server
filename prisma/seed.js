@@ -11,11 +11,14 @@ async function up() {
                 phone: "8888888888",
                 password: hashedPassword,
                 role: "ADMIN",
+                orderId: "1",
             },
             {
                 phone: "2222222222",
                 password: hashedPassword,
                 role: "USER",
+                orderId: "256459",
+                comment: "test user",
             },
         ],
     });

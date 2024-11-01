@@ -7,7 +7,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 exports.addUser = async (req, res) => {
-    const { phone } = req.body;
+    const { phone, orderId } = req.body;
 
     try {
         const candidate = await prisma.user.findFirst({
@@ -25,6 +25,7 @@ exports.addUser = async (req, res) => {
         const newUser = await prisma.user.create({
             data: {
                 phone,
+                orderId,
             },
         });
 
