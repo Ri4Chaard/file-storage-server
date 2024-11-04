@@ -9,7 +9,6 @@ const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const { userId } = req.body;
 
-        // Prisma поиск по userId
         prisma.user
             .findUnique({ where: { id: parseInt(userId) } })
             .then((user) => {
@@ -22,7 +21,7 @@ const storage = multer.diskStorage({
                     if (!fs.existsSync(userFolderPath)) {
                         fs.mkdirSync(userFolderPath, { recursive: true });
                     }
-                    cb(null, userFolderPath); // Сохранить файл в папке пользователя
+                    cb(null, userFolderPath);
                 } else {
                     cb(new Error("User not found"), null);
                 }
@@ -90,49 +89,47 @@ exports.getFile = async (req, res) => {
             "../uploads/" + file.owner.phone,
             filename
         );
+
         if (fs.existsSync(filePath)) {
-            res.sendFile(filePath, (err) => {
-                if (err) {
-                    console.error("Ошибка при отправке файла:", err);
-                    return res
-                        .status(500)
-                        .json({ message: "Error sending file" });
+            const stat = fs.statSync(filePath);
+            const fileSize = stat.size;
+            const range = req.headers.range;
+
+            if (range) {
+                const parts = range.replace(/bytes=/, "").split("-");
+                const start = parseInt(parts[0], 10);
+                const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+                if (start >= fileSize) {
+                    res.status(416).send(
+                        `Requested range not satisfiable\n${start} >= ${fileSize}`
+                    );
+                    return;
                 }
-            });
-        } else {
-            return res.status(404).json({ message: "File not found" });
-        }
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: "Internal server error" });
-    }
-};
 
-exports.viewFile = async (req, res) => {
-    const userId = req.userId;
+                const chunksize = end - start + 1;
+                const fileStream = fs.createReadStream(filePath, {
+                    start,
+                    end,
+                });
 
-    try {
-        const { filename } = req.params;
-        const file = await prisma.file.findFirst({
-            where: { name: filename },
-            include: { owner: true },
-        });
+                res.writeHead(206, {
+                    "Content-Range": `bytes ${start}-${end}/${fileSize}`,
+                    "Accept-Ranges": "bytes",
+                    "Content-Length": chunksize,
+                    "Content-Type": "application/octet-stream",
+                });
 
-        if (!file) {
-            return res.status(404).json({ message: "File not found" });
-        }
+                fileStream.pipe(res);
+            } else {
+                res.writeHead(200, {
+                    "Content-Length": fileSize,
+                    "Content-Type": "application/octet-stream",
+                });
 
-        if (userId !== file.owner.id && userId !== 1) {
-            return res.status(403).json({ error: "Access denied" });
-        }
-
-        const filePath = path.join(
-            __dirname,
-            "../uploads/" + file.owner.phone,
-            filename
-        );
-        if (fs.existsSync(filePath)) {
-            return res.sendFile(filePath);
+                const fileStream = fs.createReadStream(filePath);
+                fileStream.pipe(res);
+            }
         } else {
             return res.status(404).json({ message: "File not found" });
         }
