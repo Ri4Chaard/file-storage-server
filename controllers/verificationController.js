@@ -16,7 +16,8 @@ exports.sendCode = async (req, res) => {
         });
 
         if (existingCode) {
-            return res.status(400).json({
+            return res.status(200).json({
+                expiresAt: existingCode.expiresAt,
                 error: "Verification code already sent. Please wait before requesting a new one.",
             });
         }

@@ -171,15 +171,23 @@ exports.downloadSelected = async (req, res) => {
     try {
         const { selectedFiles } = req.body;
 
+        if (!selectedFiles || selectedFiles.length === 0) {
+            return res
+                .status(400)
+                .json({ error: "No files selected for download" });
+        }
+
+        // Создание архива с максимальным уровнем сжатия
         const archive = archiver("zip", {
             zlib: { level: 9 },
         });
 
         archive.on("error", (err) => {
+            console.error("Archive error:", err);
             res.status(500).send({ error: err.message });
         });
 
-        const file = await prisma.file.findFirst({
+        const firstFile = await prisma.file.findFirst({
             where: {
                 id: selectedFiles[0],
             },
@@ -187,12 +195,44 @@ exports.downloadSelected = async (req, res) => {
                 folder: true,
             },
         });
-        const archiveName = file.folder ? file.folder.name : "main-page";
 
-        res.attachment(`${archiveName}-${selectedFiles.length}.zip`);
+        const archiveName = firstFile.folder
+            ? firstFile.folder.name
+            : "main-page";
+        const range = req.headers.range;
+
+        // Если клиент запросил диапазон, обрабатываем поток
+        if (range) {
+            const stat = await archive.pointer(); // Получение текущей позиции указателя в архиве
+            const parts = range.replace(/bytes=/, "").split("-");
+            const start = parseInt(parts[0], 10);
+            const end = parts[1] ? parseInt(parts[1], 10) : stat - 1;
+
+            if (start >= stat) {
+                return res
+                    .status(416)
+                    .send(
+                        `Requested range not satisfiable: ${start} >= ${stat}`
+                    );
+            }
+
+            const chunksize = end - start + 1;
+            res.writeHead(206, {
+                "Content-Range": `bytes ${start}-${end}/${stat}`,
+                "Accept-Ranges": "bytes",
+                "Content-Length": chunksize,
+                "Content-Type": "application/zip",
+            });
+
+            archive.pipe(res, { start, end });
+        } else {
+            res.attachment(`${archiveName}-${selectedFiles.length}.zip`);
+            res.setHeader("Content-Type", "application/zip");
+        }
 
         archive.pipe(res);
 
+        // Добавление файлов в архив
         for (const id of selectedFiles) {
             const file = await prisma.file.findFirst({
                 where: { id },
@@ -203,8 +243,9 @@ exports.downloadSelected = async (req, res) => {
                 "../uploads/" + file.owner.phone,
                 file.name
             );
+
             if (fs.existsSync(filePath)) {
-                archive.file(filePath, { name: file.name.substring(14) });
+                archive.file(filePath, { name: file.name });
             }
         }
 
