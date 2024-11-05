@@ -1,5 +1,10 @@
 const express = require("express");
-const { login, register, addUser } = require("../controllers/authController");
+const {
+    login,
+    register,
+    addUser,
+    passwordRestore,
+} = require("../controllers/authController");
 const { auth } = require("../middleware/authMiddleware");
 const { isAdmin } = require("../middleware/roleMiddleware");
 const {
@@ -13,5 +18,6 @@ router.post("/register", register);
 router.post("/add-user", auth, isAdmin, addUser);
 router.post("/send-code", sendCode);
 router.post("/verify-user", verifyUser);
+router.post("/restore-password", passwordRestore);
 
 module.exports = router;

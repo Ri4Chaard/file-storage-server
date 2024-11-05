@@ -1,4 +1,4 @@
-const { sendVerificationCode } = require("../lib/sendVerificationCode");
+const { sendSMS } = require("../lib/sendSMS");
 const { generateVerificationCode } = require("../lib/generateVerificationCode");
 const { PrismaClient } = require("@prisma/client");
 
@@ -47,7 +47,7 @@ exports.sendCode = async (req, res) => {
         }
 
         const verificationCode = generateVerificationCode();
-        await sendVerificationCode(phone, verificationCode);
+        await sendSMS(phone, `Ваш код верифікації: ${verificationCode}`);
 
         await prisma.verificationCode.create({
             data: {

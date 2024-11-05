@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const fs = require("fs");
 const { PrismaClient } = require("@prisma/client");
+const { sendSMS } = require("../lib/sendSMS");
 
 const prisma = new PrismaClient();
 
@@ -98,5 +99,46 @@ exports.login = async (req, res) => {
         res.json({ user, token });
     } catch (error) {
         res.status(500).json({ error: "Login failed" });
+    }
+};
+
+exports.passwordRestore = async (req, res) => {
+    const { phone } = req.body;
+
+    try {
+        const candidate = await prisma.user.findFirst({
+            where: {
+                phone,
+            },
+        });
+
+        if (!candidate || !candidate.verified) {
+            return res.status(400).json({
+                error: !candidate
+                    ? "Phone number not found. Please contact the admin."
+                    : "User not verified.",
+            });
+        }
+        await prisma.user.update({
+            where: {
+                phone,
+            },
+            data: {
+                verified: false,
+                password: null,
+            },
+        });
+        await sendSMS(
+            phone,
+            "Пароль було успішно оновлено. Для активації акаунту пройдіть реєстрацію повторно."
+        );
+        res.status(200).json({
+            message: "Password was successfully restored.",
+        });
+    } catch (error) {
+        console.error("Error occured while restoring password:", error);
+        res.status(500).json({
+            error: "Error occured while restoring password.",
+        });
     }
 };
