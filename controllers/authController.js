@@ -18,9 +18,17 @@ exports.addUser = async (req, res) => {
         });
 
         if (candidate) {
+            await prisma.user.update({
+                where: {
+                    phone,
+                },
+                data: {
+                    orderId,
+                },
+            });
             return res
-                .status(400)
-                .json({ error: "Such phone already registered." });
+                .status(201)
+                .json({ message: "OrderId successfully updated." });
         }
 
         const newUser = await prisma.user.create({

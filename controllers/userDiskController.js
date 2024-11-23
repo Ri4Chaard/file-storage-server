@@ -45,7 +45,14 @@ exports.getUserDisk = async (req, res) => {
             folders.map((folder) => getFolderWithChildren(folder.id))
         );
 
-        return res.status(200).json({ files, folders });
+        const user = await prisma.user.findFirst({
+            where: {
+                id: parseInt(userId),
+            },
+        });
+        const orderId = user.orderId;
+
+        return res.status(200).json({ files, folders, orderId });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ error: "Failed to retrieve disk" });
