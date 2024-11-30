@@ -32,6 +32,9 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const timestamp = Date.now();
+        file.originalname = Buffer.from(file.originalname, "latin1").toString(
+            "utf8"
+        );
         const uniqueFilename = `${timestamp}-${file.originalname}`;
         cb(null, uniqueFilename);
     },
