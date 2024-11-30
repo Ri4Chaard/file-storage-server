@@ -4,6 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const { PrismaClient } = require("@prisma/client");
 const { sendSMS } = require("../lib/sendSMS");
+const { logUserLogin } = require("../lib/logUserLogin");
 
 const prisma = new PrismaClient();
 
@@ -104,6 +105,9 @@ exports.login = async (req, res) => {
                 expiresIn: "1h",
             }
         );
+
+        logUserLogin(user.id);
+
         res.json({ user, token });
     } catch (error) {
         res.status(500).json({ error: "Login failed" });

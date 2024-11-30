@@ -14,6 +14,7 @@ exports.getUsers = async (req, res) => {
             include: {
                 files: true,
                 folders: true,
+                loginLogs: true,
             },
             orderBy: {
                 id: "asc",
